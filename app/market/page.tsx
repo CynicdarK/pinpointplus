@@ -1,55 +1,76 @@
+import Link from "next/link";
 import AppShell from "../../components/AppShell";
 
-export default function MarketPage() {
-  const marketTabs = ["Listings", "Mints", "Transfers", "Sales", "Capsule Openings"];
+async function getListings() {
+  const response = await fetch("http://localhost:3000/api/listings", {
+    cache: "no-store",
+  });
+
+  const json = await response.json();
+
+  return json.data?.searchPinnacleNftAggregation?.edges ?? [];
+}
+
+function formatPrice(value: string | null) {
+  if (!value) return "No data";
+  return `$${(Number(value) / 100000000).toFixed(2)}`;
+}
+
+export default async function MarketPage() {
+  const listings = await getListings();
 
   return (
     <AppShell>
-      <h2 className="text-2xl font-bold">Market</h2>
-      <p className="mt-1 text-slate-400">
-        Track live listings, sales, transfers, mints, and capsule openings.
+      <h1 className="text-4xl font-bold">Market</h1>
+
+      <p className="mt-2 text-slate-400">
+        Live Disney Pinnacle marketplace overview.
       </p>
 
-      <div className="mt-6 flex w-fit rounded-lg bg-slate-800 p-2">
-        {marketTabs.map((tab, index) => (
-          <button
-            key={tab}
-            className={
-              index === 0
-                ? "rounded-md bg-black px-5 py-2 text-sm font-semibold"
-                : "rounded-md px-5 py-2 text-sm text-slate-300 hover:bg-slate-700"
-            }
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+      <div className="mt-6 rounded-xl bg-slate-800 p-6">
+        <h2 className="text-2xl font-bold">Marketplace Overview</h2>
 
-      <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900">
-        <div className="border-b border-slate-800 px-5 py-4">
-          <h3 className="font-semibold">Live Listings</h3>
-          <p className="text-sm text-slate-400">
-            Placeholder table for marketplace data.
-          </p>
-        </div>
+        <p className="mt-2 text-sm text-slate-400">
+          Rows are grouped by pin/edition. Click exact listings to see serial-level prices.
+        </p>
 
-        <div className="grid grid-cols-6 border-b border-slate-800 px-5 py-3 text-sm font-semibold text-slate-400">
-          <div>Pin</div>
-          <div>Variant</div>
-          <div>Serial</div>
-          <div>Price</div>
-          <div>Seller</div>
-          <div>Listed</div>
-        </div>
+        <table className="mt-6 w-full text-left">
+          <thead className="border-b border-slate-700 text-slate-400">
+            <tr>
+              <th className="pb-3">Pin</th>
+              <th>Set</th>
+              <th>Variant</th>
+              <th>Lowest Ask</th>
+              <th>Listings</th>
+              <th>Details</th>
+            </tr>
+          </thead>
 
-        <div className="grid grid-cols-6 px-5 py-4 text-sm text-slate-300">
-          <div>Ferb</div>
-          <div>Silver Sparkle</div>
-          <div>/424</div>
-          <div>$1</div>
-          <div>sampleuser</div>
-          <div>Coming soon</div>
-        </div>
+          <tbody>
+            {listings.map((edge: any) => {
+              const node = edge.node;
+              const editionId = node.edition.id.value;
+
+              return (
+                <tr key={node.id.value} className="border-b border-slate-700">
+                  <td className="py-4">{node.edition.shape.name.value}</td>
+                  <td>{node.edition.set.truncatedName}</td>
+                  <td>{node.edition.variant.value}</td>
+                  <td>{formatPrice(node.listing.price.value)}</td>
+                  <td>{node.listing.price.counts.total}</td>
+                  <td>
+                    <Link
+                      href={`/market/edition/${editionId}`}
+                      className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold hover:bg-blue-500"
+                    >
+                      Exact Listings
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </AppShell>
   );
